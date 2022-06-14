@@ -18,6 +18,8 @@ Future<void> main() async {
   );
   ///background
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
   NotificationSettings settings = await messaging.requestPermission(
@@ -34,7 +36,7 @@ Future<void> main() async {
 
   // use the returned token to send messages to users from your custom server
   String? token = await messaging.getToken();
-  debugPrint("token is $token");
+  print("token is $token");
 
 
 ///foreground
@@ -54,8 +56,28 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+
+  @override
+  void initState() {
+    print('///initState main//');
+    FirebaseMessaging.instance
+        .getInitialMessage()
+        .then((RemoteMessage? message) {
+      print("FirebaseMessaging.getInitialMessage ${message?.notification}");
+
+    });
+    super.initState();
+  }
+
+
 
   // This widget is the root of your application.
   @override
@@ -99,7 +121,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-
+String m = '';
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -110,9 +132,46 @@ class _MyHomePageState extends State<MyHomePage> {
       _counter++;
     });
   }
+  @override
+   void initState()  {
+    setupInteractedMessage();
+    print('///MyHomePage//');
+    super.initState();
+  }
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+
+    if (state == AppLifecycleState.resumed) {
+      print('///didChangeAppLifecycleState//resumed');
+      FirebaseMessaging.instance
+          .getInitialMessage()
+          .then((RemoteMessage? message) {
+        print("FirebaseMessaging.getInitialMessage ${message?.notification}");
+
+      });
+    }else if(state == AppLifecycleState.inactive){
+      print('///didChangeAppLifecycleState//inactive');
+      FirebaseMessaging.instance
+          .getInitialMessage()
+          .then((RemoteMessage? message) {
+        print("FirebaseMessaging.getInitialMessage ${message?.notification}");
+
+      });
+    }else{
+      print('///didChangeAppLifecycleState//other');
+      FirebaseMessaging.instance
+          .getInitialMessage()
+          .then((RemoteMessage? message) {
+        print("FirebaseMessaging.getInitialMessage ${message?.notification}");
+
+      });
+    }
+
+  }
 
   @override
   Widget build(BuildContext context) {
+
+    print('///build//');
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -152,6 +211,9 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headline4,
             ),
+             Text(
+              m,
+            ),
           ],
         ),
       ),
@@ -161,5 +223,33 @@ class _MyHomePageState extends State<MyHomePage> {
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  // It is assumed that all messages contain a data field with the key 'type'
+  Future<void> setupInteractedMessage() async {
+    // Get any messages which caused the application to open from
+    // a terminated state.
+    RemoteMessage? initialMessage =
+    await FirebaseMessaging.instance.getInitialMessage();
+
+    // If the message also contains a data property with a "type" of "chat",
+    // navigate to a chat screen
+    if (initialMessage != null ) {
+      print('initial message is not null');
+      setState((){
+        m = 'initial message is not null';
+      });
+    }else{
+      print('initial message is null');
+      setState((){
+        m = 'initial message is null';
+      });
+    }
+
+    // Also handle any interaction when the app is in the background via a
+    // Stream listener
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('opend app ${message.notification}');
+    });
   }
 }
